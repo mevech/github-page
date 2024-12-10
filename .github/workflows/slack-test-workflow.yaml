@@ -1,0 +1,58 @@
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "The name of the module"
+        type: string
+        required: true
+    secrets:
+      slack_webhook:
+        required: true
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+  pull-requests: 'write'
+
+jobs:
+  terragrunt_apply:
+    runs-on: ubuntu-latest
+    env:
+      result_file: ${{ github.workspace }}/terragrunt.tfplan
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+
+      - name: "Mock Terragrunt Apply"
+        id: tg_apply
+        run: |
+          cat <<EOF > ${GITHUB_WORKSPACE}/error.log
+            13:02:09.858 STDERR terraform: ╷
+            13:02:09.858 STDERR terraform: │ Error: project: required field is not set
+            13:02:09.858 STDERR terraform: │
+            13:02:09.858 STDERR terraform: │   with google_storage_bucket.error_bucket,
+            13:02:09.858 STDERR terraform: │   on main.tf line 48, in resource "google_storage_bucket" "error_bucket":
+            13:02:09.858 STDERR terraform: │   48: resource "google_storage_bucket" "error_bucket" {
+            13:02:09.858 STDERR terraform: │
+            13:02:09.858 STDERR terraform: ╵
+          EOF
+          exit 1
+        shell: bash
+
+      - name: "Prepare Slack Message"
+        if: failure()
+        id: slack_context
+        run: |
+          echo "error=$(cat ${{ github.workspace }}/error.log | tr '\n' '\\n')" > /tmp/output
+
+      - name: "Notify Failure"
+        id: notify_failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.slack_webhook }}
+          webhook-type: incoming-webhook
+          payload-file-path: ../templates/apply-template.json
+          payload-templated: true
