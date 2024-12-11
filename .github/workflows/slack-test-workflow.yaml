@@ -45,8 +45,13 @@ jobs:
         if: failure()
         id: slack_context
         run: |
-          echo "APPLY_ERROR=$(cat ${{ github.workspace }}/error.log | tr '\n' '\\n')" >> $GITHUB_ENV
-          echo "APPLY_ERROR='this is another line'" >> $GITHUB_ENV
+            {
+            echo 'APPLY_ERROR<<EOF'
+            echo "```"
+            cat ${{ github.workspace }}/error.log
+            echo "```"
+            echo EOF
+            } >> "$GITHUB_ENV"
 
       - name: "Notify Failure"
         id: notify_failure
@@ -111,7 +116,7 @@ jobs:
                   - type: section
                     text:
                       type: mrkdwn
-                      text: '```${{ toJson(env.APPLY_ERROR) }}```'
+                      text: ```${{ toJson(env.APPLY_ERROR) }}```'
 
 
 
