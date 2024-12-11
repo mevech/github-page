@@ -1,0 +1,121 @@
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: "The name of the module"
+        type: string
+        required: true
+    secrets:
+      slack_webhook:
+        required: true
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+  pull-requests: 'write'
+
+jobs:
+  terragrunt_apply:
+    runs-on: ubuntu-latest
+    env:
+      result_file: ${{ github.workspace }}/terragrunt.tfplan
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+
+      - name: "Mock Terragrunt Apply"
+        id: tg_apply
+        run: |
+          cat <<EOF > ${GITHUB_WORKSPACE}/error.log
+            13:02:09.858 STDERR terraform: ╷
+            13:02:09.858 STDERR terraform: │ Error: project: required field is not set
+            13:02:09.858 STDERR terraform: │
+            13:02:09.858 STDERR terraform: │   with google_storage_bucket.error_bucket,
+            13:02:09.858 STDERR terraform: │   on main.tf line 48, in resource "google_storage_bucket" "error_bucket":
+            13:02:09.858 STDERR terraform: │   48: resource "google_storage_bucket" "error_bucket" {
+            13:02:09.858 STDERR terraform: │
+            13:02:09.858 STDERR terraform: ╵
+          EOF
+          exit 1
+        shell: bash
+
+      - name: "Prepare Slack Message"
+        if: failure()
+        id: slack_context
+        run: |
+            error_log=$(cat ${{ github.workspace }}/error.log)
+            {
+            echo 'APPLY_ERROR<<EOF'
+            echo '```'
+            echo $error_log
+            echo '```'
+            echo EOF
+            } >> "$GITHUB_ENV"
+
+      - name: "Notify Failure"
+        id: notify_failure
+        if: failure()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.slack_webhook }}
+          webhook-type: incoming-webhook
+          payload-templated: true
+          payload-file-path: ./.github/templates/apply-template.json
+
+          
+      - name: "Notify Failure"
+        id: notify_failure_yaml
+        if: failure()
+        uses: slackapi/slack-github-action@v2.0.0
+        with:
+          webhook: ${{ secrets.slack_webhook }}
+          webhook-type: incoming-webhook
+          payload: |
+            attachments:
+              - color: '#f2c744'
+                blocks:
+                  - type: header
+                    text:
+                      type: plain_text
+                      text: ':rotating_light: Terragrunt Apply has failed for ${{ inputs.environment }} with yaml'
+                      emoji: true
+                  - type: section
+                    text:
+                      type: plain_text
+                      emoji: true
+                      text: An error has occurred when trying to run terragrunt apply for PR.
+                  - type: divider
+                  - type: section
+                    text:
+                      type: mrkdwn
+                      text: "*<${{ github.event.pull_request.html_url }}|${{ github.event.pull_request.title }}>* \n${{ toJson(github.event.pull_request.body) }}"
+                    accessory:
+                      type: image
+                      image_url: ${{ github.event.pull_request.user.avatar_url }}
+                      alt_text: actor image
+                  - type: section
+                    fields:
+                      - type: mrkdwn
+                        text: |-
+                          *Branch*
+                          ${{ github.event.pull_request.head.ref }}
+                      - type: mrkdwn
+                        text: |-
+                          *Author*
+                          ${{ github.event.pull_request.user.login }}
+                  - type: context
+                    elements:
+                      - type: mrkdwn
+                        text: <https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }} |${{ github.job }}>
+                  - type: divider
+                  - type: section
+                    text:
+                      type: mrkdwn
+                      text: '*Error message:*'
+                  - type: section
+                    text:
+                      type: mrkdwn
+                      text: ${{ toJson(env.APPLY_ERROR) }}
+

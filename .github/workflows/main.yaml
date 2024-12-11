@@ -1,0 +1,20 @@
+on:
+  pull_request:
+
+
+
+permissions:
+  contents: 'read'
+  id-token: 'write'
+  pull-requests: 'write'
+
+jobs:
+
+
+  terragrunt-apply-test:
+    name: "Terragrunt Pipeline Test - Apply"
+    uses: ./.github/workflows/slack-test-workflow.yaml
+    with:
+      environment: 'sandbox-gha-test'
+    secrets:
+      slack_webhook: ${{ secrets.SLACK_WEBHOOK_URL }}
