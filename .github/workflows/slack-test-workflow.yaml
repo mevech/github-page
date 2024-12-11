@@ -45,7 +45,7 @@ jobs:
         if: failure()
         id: slack_context
         run: |
-          echo "error=$(cat ${{ github.workspace }}/error.log | tr '\n' '\\n')" > /tmp/output
+          echo "APPLY_ERROR=$(cat ${{ github.workspace }}/error.log | tr '\n' '\\n')" >> $GITHUB_ENV
 
       - name: "Notify Failure"
         id: notify_failure
@@ -110,7 +110,7 @@ jobs:
                   - type: section
                     text:
                       type: mrkdwn
-                      text: '```${{ toJson(steps.slack_context.outputs.error) }}```'
+                      text: '```${{ toJson(env.APPLY_ERROR) }}```'
 
 
 
