@@ -54,4 +54,5 @@ jobs:
         with:
           webhook: ${{ secrets.slack_webhook }}
           webhook-type: incoming-webhook
+          payload-templated: true
           payload-file-path: ./.github/templates/apply-template.json
