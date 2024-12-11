@@ -7,7 +7,7 @@
           "type": "header",
           "text": {
             "type": "plain_text",
-            "text": ":rotating_light: Terragrunt Apply has failed for ${{ inputs.environment }}",
+            "text": ":rotating_light: GitHub Action build result: ${{ job.status }}\n${{ github.event.pull_request.html_url} }",
             "emoji": true
           }
         },
