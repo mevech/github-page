@@ -46,6 +46,7 @@ jobs:
         id: slack_context
         run: |
           echo "APPLY_ERROR=$(cat ${{ github.workspace }}/error.log | tr '\n' '\\n')" >> $GITHUB_ENV
+          echo "APPLY_ERROR='this is another line'" >> $GITHUB_ENV
 
       - name: "Notify Failure"
         id: notify_failure
