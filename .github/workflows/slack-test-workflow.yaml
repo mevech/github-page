@@ -45,11 +45,12 @@ jobs:
         if: failure()
         id: slack_context
         run: |
+            error_log=$(cat ${{ github.workspace }}/error.log)
             {
             echo 'APPLY_ERROR<<EOF'
-            echo "```"
-            cat ${{ github.workspace }}/error.log
-            echo "```"
+            echo '```'
+            echo $error_log
+            echo '```'
             echo EOF
             } >> "$GITHUB_ENV"
 
