@@ -111,7 +111,7 @@ jobs:
                   - type: section
                     text:
                       type: mrkdwn
-                      text: '```${{ env.APPLY_ERROR }}```'
+                      text: '```${{ toJson(env.APPLY_ERROR) }}```'
 
 
 
